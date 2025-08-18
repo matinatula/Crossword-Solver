@@ -1,0 +1,22 @@
+INFO:     Will watch for changes in these directories: ['/Users/iamshishirgaire/Documents/Projects/crossword_solver']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [49660] using StatReload
+INFO:     Started server process [49663]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+  (1,1) is_vertical_start: True
+  (1,1) vertical length: 3
+  (1,2) is_vertical_start: False
+  (1,3) is_vertical_start: True
+  (1,3) vertical length: 3
+  (2,1) is_vertical_start: False
+  (2,3) is_vertical_start: False
+  (3,1) is_vertical_start: False
+  (3,2) is_vertical_start: False
+  (3,3) is_vertical_start: False
+INFO:     127.0.0.1:63354 - "POST /solve-stream HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [49663]
+INFO:     Stopping reloader process [49660]
