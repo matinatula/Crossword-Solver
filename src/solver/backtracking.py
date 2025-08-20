@@ -4,7 +4,8 @@ from typing import List, Dict, Set
 
 class CrosswordSolver:
     def __init__(self, grid: List[List[str]]):
-        self.grid = [["#" if cell == "█" else cell for cell in row] for row in grid]
+        self.grid = [["#" if cell == "█" else cell for cell in row]
+                     for row in grid]
 
         self.height = len(self.grid)
 
@@ -13,7 +14,8 @@ class CrosswordSolver:
             if len(row) > max_width:
                 max_width = len(row)
         self.width = max_width
-        self.grid = [row + ["#"] * (self.width - len(row)) for row in self.grid]
+        self.grid = [row + ["#"] * (self.width - len(row))
+                     for row in self.grid]
 
         self.words_by_length = self._get_words_by_length()
         self.variables = self._find_variables()
@@ -27,8 +29,8 @@ class CrosswordSolver:
                 var1 = self.variables[i]
                 var2 = self.variables[j]
 
-                r1, c1, dir1, len1 = var1
-                r2, c2, dir2, len2 = var2
+                _, _, dir1, _ = var1
+                _, _, dir2, _ = var2
 
                 if dir1 == dir2:
                     continue
@@ -47,7 +49,8 @@ class CrosswordSolver:
                 ):
                     idx_across = c_down - c_across
                     idx_down = r_across - r_down
-                    intersections[(across_var, down_var)] = (idx_across, idx_down)
+                    intersections[(across_var, down_var)] = (
+                        idx_across, idx_down)
         return intersections
 
     def _get_variable_intersections(self) -> Dict[tuple, List[tuple]]:
