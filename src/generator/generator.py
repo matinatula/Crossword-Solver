@@ -31,43 +31,74 @@ class CrosswordGenerator:
 
         placed_words = {start_word}
 
-        for _ in range(num_words * 10):
+        for attempt in range(num_words * 15):  # Increased attempts
             if len(self.words) >= num_words:
                 break
 
+            # KEY CHANGE: Randomize which existing word to use for intersection
             word_info = random.choice(self.words)
             existing_word = word_info["word"]
 
-            for i, letter in enumerate(existing_word):
-                for word_len in self.words_by_length:
-                    candidate_words = self.words_by_length[word_len]
+            # KEY CHANGE: Randomize the order of letters to try
+            letter_positions = list(enumerate(existing_word))
+            random.shuffle(letter_positions)
+
+            word_placed = False
+            for i, letter in letter_positions:
+                if word_placed:
+                    break
+
+                # KEY CHANGE: Randomize word length selection
+                available_lengths = [
+                    length
+                    for length in self.words_by_length.keys()
+                    if self.words_by_length[length]
+                ]
+                random.shuffle(available_lengths)
+
+                for word_len in available_lengths:
+                    if word_placed:
+                        break
+
+                    candidate_words = self.words_by_length[word_len].copy()
                     random.shuffle(candidate_words)
+
                     for new_word in candidate_words:
                         if letter in new_word and new_word not in placed_words:
-                            j = new_word.find(letter)
-                            if word_info["direction"] == "across":
-                                new_row = word_info["row"] - j
-                                new_col = word_info["col"] + i
+                            # KEY CHANGE: Try all possible positions of the letter in new_word
+                            letter_indices = [
+                                idx
+                                for idx, char in enumerate(new_word)
+                                if char == letter
+                            ]
+                            random.shuffle(letter_indices)
+
+                            for j in letter_indices:
+                                if word_info["direction"] == "across":
+                                    new_row = word_info["row"] - j
+                                    new_col = word_info["col"] + i
+                                    new_direction = "down"
+                                else:
+                                    new_row = word_info["row"] + i
+                                    new_col = word_info["col"] - j
+                                    new_direction = "across"
+
                                 if self.can_place_word(
-                                    new_word, new_row, new_col, "down"
-                                ):
-                                    self.place_word(new_word, new_row, new_col, "down")
-                                    placed_words.add(new_word)
-                                    break
-                            else:
-                                new_row = word_info["row"] + i
-                                new_col = word_info["col"] - j
-                                if self.can_place_word(
-                                    new_word, new_row, new_col, "across"
+                                    new_word, new_row, new_col, new_direction
                                 ):
                                     self.place_word(
-                                        new_word, new_row, new_col, "across"
+                                        new_word, new_row, new_col, new_direction
                                     )
                                     placed_words.add(new_word)
+                                    word_placed = True
                                     break
-                    else:
-                        continue
-                    break
+
+                        if word_placed:
+                            break
+
+            # KEY CHANGE: Add fallback random placement every few attempts
+            if not word_placed and attempt % 20 == 19:
+                self._try_random_placement(placed_words, num_words)
 
         for r in range(self.size):
             for c in range(self.size):
@@ -75,6 +106,35 @@ class CrosswordGenerator:
                     self.grid[r][c] = "#"
 
         return self.grid, self.words
+
+    def _try_random_placement(self, placed_words, target_words):
+        """Try to place a word randomly when intersection fails"""
+        if len(self.words) >= target_words:
+            return
+
+        # Get available words
+        available_words = []
+        for length in self.words_by_length:
+            for word in self.words_by_length[length]:
+                if word not in placed_words:
+                    available_words.append(word)
+
+        if not available_words:
+            return
+
+        random.shuffle(available_words)
+
+        # Try to place first few words randomly
+        for word in available_words[:5]:
+            for _ in range(10):  # Try 10 random positions per word
+                row = random.randint(0, self.size - 1)
+                col = random.randint(0, self.size - 1)
+                direction = random.choice(["across", "down"])
+
+                if self.can_place_word(word, row, col, direction):
+                    self.place_word(word, row, col, direction)
+                    placed_words.add(word)
+                    return
 
     def can_place_word(self, word, row, col, direction):
         if row < 0 or col < 0:
@@ -86,13 +146,18 @@ class CrosswordGenerator:
             for i, letter in enumerate(word):
                 if self.grid[row][col + i] not in ("", letter):
                     return False
+                # KEY CHANGE: More lenient adjacent cell checking
                 if self.grid[row][col + i] == "":
-                    if (row > 0 and self.grid[row - 1][col + i] != "") or (
-                        row < self.size - 1 and self.grid[row + 1][col + i] != ""
+                    # Only check direct adjacency conflicts for empty cells
+                    if (row > 0 and self.grid[row - 1][col + i] not in ("", "#")) or (
+                        row < self.size - 1
+                        and self.grid[row + 1][col + i] not in ("", "#")
                     ):
                         return False
-            if (col > 0 and self.grid[row][col - 1] != "") or (
-                col + len(word) < self.size and self.grid[row][col + len(word)] != ""
+            # Check word boundaries
+            if (col > 0 and self.grid[row][col - 1] not in ("", "#")) or (
+                col + len(word) < self.size
+                and self.grid[row][col + len(word)] not in ("", "#")
             ):
                 return False
         else:
@@ -101,13 +166,17 @@ class CrosswordGenerator:
             for i, letter in enumerate(word):
                 if self.grid[row + i][col] not in ("", letter):
                     return False
+                # KEY CHANGE: More lenient adjacent cell checking
                 if self.grid[row + i][col] == "":
-                    if (col > 0 and self.grid[row + i][col - 1] != "") or (
-                        col < self.size - 1 and self.grid[row + i][col + 1] != ""
+                    if (col > 0 and self.grid[row + i][col - 1] not in ("", "#")) or (
+                        col < self.size - 1
+                        and self.grid[row + i][col + 1] not in ("", "#")
                     ):
                         return False
-            if (row > 0 and self.grid[row - 1][col] != "") or (
-                row + len(word) < self.size and self.grid[row + len(word)][col] != ""
+            # Check word boundaries
+            if (row > 0 and self.grid[row - 1][col] not in ("", "#")) or (
+                row + len(word) < self.size
+                and self.grid[row + len(word)][col] not in ("", "#")
             ):
                 return False
 
